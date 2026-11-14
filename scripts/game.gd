@@ -601,13 +601,13 @@ func show_settings():
 	sensitivity.max_value = 0.005
 	sensitivity.step = 0.0001
 	sensitivity.value = player.look_sensitivity
-	layout.add_child(make_setting_row(layout, "MOUSE SENSITIVITY", sensitivity))
+	make_setting_row(layout, "MOUSE SENSITIVITY", sensitivity)
 	sensitivity.value_changed.connect(func(value): player.look_sensitivity = value)
 	var volume = HSlider.new()
 	volume.min_value = 0.0
 	volume.max_value = 1.0
 	volume.value = db_to_linear(AudioServer.get_bus_volume_db(0))
-	layout.add_child(make_setting_row(layout, "MASTER VOLUME", volume))
+	make_setting_row(layout, "MASTER VOLUME", volume)
 	volume.value_changed.connect(func(value): AudioServer.set_bus_volume_db(0, linear_to_db(maxf(value, 0.001))))
 	var back = Button.new()
 	back.text = "BACK"
