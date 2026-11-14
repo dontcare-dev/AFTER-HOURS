@@ -42,7 +42,7 @@ func _ready():
 	build_ui()
 	set_objective("Report to the security office.")
 	show_message("SHIFT STARTED  /  12:00 AM", 4.0)
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	show_main_menu()
 
 func _process(delta):
 	if paused or terminal_open or ending:
@@ -506,6 +506,12 @@ func close_terminal():
 	feed.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+func show_main_menu():
+	paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	overlay.visible = true
+	show_menu("AFTERHOURS", [["NEW SHIFT", "new"], ["CONTINUE", "load"], ["SETTINGS", "settings"], ["CREDITS", "credits"], ["EXIT", "exit"]], "NIGHT SECURITY  /  SHIFT 001")
+
 func open_pause():
 	paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -562,6 +568,60 @@ func _menu_action(action: String):
 			load_game()
 		"menu":
 			get_tree().reload_current_scene()
+		"new":
+			elapsed = 0.0
+			completed.clear()
+			evidence.clear()
+			discovered.clear()
+			decisions.clear()
+			event_flags.clear()
+			player.position = Vector3(-13, 0.1, 14)
+			set_objective("Report to the security office.")
+			resume_game()
+			show_message("SHIFT STARTED  /  12:00 AM", 4.0)
+		"settings":
+			show_settings()
+		"credits":
+			show_menu("CREDITS", [["BACK", "resume"]], "AFTERHOURS\nA psychological horror game\nBuilt with Godot 4.")
+		"exit":
+			get_tree().quit()
+
+func show_settings():
+	for child in panel.get_children():
+		child.queue_free()
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 10)
+	panel.add_child(layout)
+	var title = Label.new()
+	title.text = "SETTINGS"
+	title.add_theme_font_size_override("font_size", 24)
+	layout.add_child(title)
+	var sensitivity = HSlider.new()
+	sensitivity.min_value = 0.0008
+	sensitivity.max_value = 0.005
+	sensitivity.step = 0.0001
+	sensitivity.value = player.look_sensitivity
+	layout.add_child(make_setting_row(layout, "MOUSE SENSITIVITY", sensitivity))
+	sensitivity.value_changed.connect(func(value): player.look_sensitivity = value)
+	var volume = HSlider.new()
+	volume.min_value = 0.0
+	volume.max_value = 1.0
+	volume.value = db_to_linear(AudioServer.get_bus_volume_db(0))
+	layout.add_child(make_setting_row(layout, "MASTER VOLUME", volume))
+	volume.value_changed.connect(func(value): AudioServer.set_bus_volume_db(0, linear_to_db(maxf(value, 0.001))))
+	var back = Button.new()
+	back.text = "BACK"
+	back.pressed.connect(func(): show_menu("PAUSED", [["RESUME", "resume"], ["OBJECTIVES", "objectives"], ["SAVE GAME", "save"], ["LOAD GAME", "load"], ["MAIN MENU", "menu"]]))
+	layout.add_child(back)
+
+func make_setting_row(parent: VBoxContainer, title_text: String, control: Control) -> Control:
+	var row = VBoxContainer.new()
+	var label = Label.new()
+	label.text = title_text
+	row.add_child(label)
+	row.add_child(control)
+	parent.add_child(row)
+	return row
 
 func save_game():
 	var data = {"elapsed": elapsed, "position": [player.position.x, player.position.y, player.position.z], "rotation": player.rotation.y, "objective": current_objective, "completed": completed, "evidence": evidence, "discovered": discovered, "decisions": decisions, "event_flags": event_flags}
