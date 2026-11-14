@@ -50,7 +50,7 @@ func _unhandled_input(event):
 	if event.is_action_pressed("crouch"):
 		crouched = !crouched
 		var target_height = 1.12 if crouched else body_height
-		(camera.position.y) = target_height - 0.15
+		camera.position.y = target_height - 0.15
 		($CollisionShape3D.shape as CapsuleShape3D).height = target_height
 		$CollisionShape3D.position.y = target_height * 0.5
 	if event.is_action_pressed("interact"):
