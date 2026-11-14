@@ -12,14 +12,19 @@ permissions:
 jobs:
   export-windows:
     runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.3.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install Godot and export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+          include-templates: true
       - name: Validate project and import assets
-        run: godot --headless --editor --path . --quit
-godot --headless --path . --script res://tests/validate.gd
+        run: |
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tests/validate.gd
       - name: Export Windows desktop
         run: |
           mkdir -p builds/windows
