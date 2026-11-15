@@ -39,7 +39,7 @@ func _ready():
 	lamp.spot_range = 19.0
 	lamp.spot_angle = 38.0
 	lamp.light_energy = 2.2
-	lamp.shadow_enabled = true
+	lamp.shadow_enabled = false
 	camera.add_child(lamp)
 	footstep_player = AudioStreamPlayer3D.new()
 	footstep_player.stream = make_footstep()
