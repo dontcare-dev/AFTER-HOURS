@@ -38,6 +38,10 @@ var haunting: Node3D
 var anomaly_active := false
 var event_flags := {}
 var mall_materials := {}
+var mall_lights: Array[OmniLight3D] = []
+var flicker_restore: Array = []
+var flicker_duration := 0.0
+var next_flicker := 36.0
 
 func _ready():
 	build_world()
@@ -55,6 +59,7 @@ func _process(delta):
 	update_clock()
 	update_hud()
 	update_story_events()
+	update_light_anomalies(delta)
 	if elapsed >= shift_duration:
 		finish_game()
 
@@ -125,6 +130,7 @@ func build_world():
 			light.omni_range = 10.0
 			light.shadow_enabled = false
 			mall.add_child(light)
+			mall_lights.append(light)
 			var fixture = box(mall, Vector3(x, 5.88, z), Vector3(2.2, 0.12, 0.48), material(Color(0.62, 0.65, 0.65), 0.2, 0.3), false)
 	for side in [-1, 1]:
 		for z in [-20, -10, 0, 10, 20]:
@@ -502,6 +508,36 @@ func update_story_events():
 		event_flags["final"] = true
 		set_objective("Return to the main entrance and leave the mall.")
 		show_message("FINAL HOUR  /  THE FRONT DOORS ARE UNLOCKING", 5.0)
+
+func update_light_anomalies(delta: float):
+	if elapsed < 95.0:
+		return
+	if flicker_duration > 0.0:
+		flicker_duration -= delta
+		for item in flicker_restore:
+			var lamp: OmniLight3D = item["node"]
+			if is_instance_valid(lamp):
+				lamp.light_energy = randf_range(0.0, 0.12) if randf() < 0.76 else item["energy"]
+		if flicker_duration <= 0.0:
+			for item in flicker_restore:
+				var lamp: OmniLight3D = item["node"]
+				if is_instance_valid(lamp):
+					lamp.light_energy = item["energy"]
+			flicker_restore.clear()
+			next_flicker = randf_range(38.0, 68.0)
+		return
+	next_flicker -= delta
+	if next_flicker > 0.0 or mall_lights.is_empty():
+		return
+	var chosen: Array = []
+	for i in range(4):
+		var lamp = mall_lights[randi_range(0, mall_lights.size() - 1)]
+		if lamp not in chosen:
+			chosen.append(lamp)
+	for lamp in chosen:
+		flicker_restore.append({"node": lamp, "energy": lamp.light_energy})
+	flicker_duration = randf_range(2.0, 4.5)
+	show_message("The lights above you begin to fail.", 3.0)
 
 func open_terminal():
 	terminal_open = true
