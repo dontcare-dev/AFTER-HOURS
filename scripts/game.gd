@@ -120,11 +120,11 @@ func build_world():
 	mall.name = "Mall"
 	mall.scale = Vector3(WORLD_SCALE, 1.0, WORLD_SCALE)
 	add_child(mall)
-	var floor_mat = material(Color(0.19, 0.19, 0.18), 0.08)
-	var wall_mat = material(Color(0.32, 0.31, 0.28))
-	var dark_mat = material(Color(0.045, 0.05, 0.055))
-	var tile_mat = material(Color(0.28, 0.28, 0.26), 0.12)
-	var ceiling_mat = material(Color(0.13, 0.14, 0.14))
+	var floor_mat = textured_material(Color(0.22, 0.22, 0.2), 0.22, 0.12, 0.028)
+	var wall_mat = textured_material(Color(0.34, 0.33, 0.29), 0.82, 0.0, 0.018)
+	var dark_mat = textured_material(Color(0.045, 0.052, 0.056), 0.7, 0.08, 0.04)
+	var tile_mat = textured_material(Color(0.29, 0.29, 0.27), 0.16, 0.18, 0.055)
+	var ceiling_mat = textured_material(Color(0.14, 0.15, 0.15), 0.9, 0.0, 0.02)
 	box(mall, Vector3(0, -0.25, 0), Vector3(42, 0.5, 58), floor_mat, true)
 	box(mall, Vector3(-12.0, 6.2, 0), Vector3(18.0, 0.5, 58), ceiling_mat, false)
 	var skylight_material = material(Color(0.09, 0.13, 0.15, 0.24), 0.12, 0.08)
@@ -566,6 +566,36 @@ func make_label(parent, text_value: String, pos: Vector2, font_size: int, color:
 	label.add_theme_constant_override("shadow_offset_y", 1)
 	parent.add_child(label)
 	return label
+
+func textured_material(base_color: Color, roughness_value: float, metallic_value: float, frequency: float) -> StandardMaterial3D:
+	var noise = FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	noise.frequency = frequency
+	noise.fractal_octaves = 4
+	noise.fractal_gain = 0.52
+	noise.fractal_lacunarity = 2.0
+	var size = 256
+	var albedo_image = Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var normal_image = Image.create(size, size, false, Image.FORMAT_RGBA8)
+	for y in range(size):
+		for x in range(size):
+			var height_value = noise.get_noise_2d(float(x), float(y))
+			var shade = clampf(0.72 + height_value * 0.28, 0.28, 1.0)
+			albedo_image.set_pixel(x, y, Color(shade, shade, shade, 1.0))
+			var dx = noise.get_noise_2d(float(x + 1), float(y)) - noise.get_noise_2d(float(x - 1), float(y))
+			var dy = noise.get_noise_2d(float(x), float(y + 1)) - noise.get_noise_2d(float(x), float(y - 1))
+			var normal = Vector3(-dx * 2.2, -dy * 2.2, 1.0).normalized()
+			normal_image.set_pixel(x, y, Color(normal.x * 0.5 + 0.5, normal.y * 0.5 + 0.5, normal.z * 0.5 + 0.5, 1.0))
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = base_color
+	mat.albedo_texture = ImageTexture.create_from_image(albedo_image)
+	mat.normal_enabled = true
+	mat.normal_texture = ImageTexture.create_from_image(normal_image)
+	mat.normal_scale = 0.28
+	mat.roughness = roughness_value
+	mat.metallic = metallic_value
+	mat.uv1_scale = Vector3(4.0, 4.0, 4.0)
+	return mat
 
 func material(color: Color, roughness := 0.8, emission := 0.0) -> StandardMaterial3D:
 	var mat = StandardMaterial3D.new()
