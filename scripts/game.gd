@@ -248,13 +248,16 @@ func build_storefront(parent, side: int, center_z: float, index: int):
 	door.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	box(parent, Vector3(front_x - side * 0.09, 1.75, center_z - 0.82), Vector3(0.16, 3.55, 0.12), trim, false)
 	box(parent, Vector3(front_x - side * 0.09, 1.75, center_z + 0.82), Vector3(0.16, 3.55, 0.12), trim, false)
-	if ResourceLoader.exists("res://assets/retail_shopfloor.glb"):
+	if side == 1 and index == 2 and ResourceLoader.exists("res://assets/retail_shopfloor.glb"):
 		var shop_pack := load("res://assets/retail_shopfloor.glb") as PackedScene
 		if shop_pack:
 			var shop = shop_pack.instantiate()
 			shop.position = Vector3(side * 15.3, 0.0, center_z)
 			shop.rotation.y = -float(side) * PI * 0.5
 			parent.add_child(shop)
+			for mesh_node in shop.find_children("*", "MeshInstance3D", true, false):
+				mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mesh_node.lod_bias = 1.5
 	else:
 		for shelf_z in [-2.8, 2.8]:
 			box(parent, Vector3(side * 12.0, 1.1, center_z + shelf_z), Vector3(2.1, 0.14, 1.1), material(Color(0.2, 0.18, 0.15)), false)
@@ -536,7 +539,8 @@ func build_ui():
 func build_cctv_ui():
 	feed_view = SubViewport.new()
 	feed_view.size = Vector2i(960, 540)
-	feed_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	feed_view.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	feed_view.size = Vector2i(640, 360)
 	feed_view.world_3d = get_viewport().world_3d
 	feed_camera = Camera3D.new()
 	feed_camera.current = true
@@ -795,6 +799,7 @@ func update_light_anomalies(delta: float):
 
 func open_terminal():
 	terminal_open = true
+	feed_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	feed.visible = true
 	feed_index = 0
 	set_feed_camera()
@@ -818,6 +823,7 @@ func change_camera(direction: int):
 
 func close_terminal():
 	terminal_open = false
+	feed_view.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	feed.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
