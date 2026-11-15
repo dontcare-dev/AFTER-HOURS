@@ -98,6 +98,18 @@ func build_world():
 	environment.ambient_light_color = Color(0.32, 0.34, 0.38)
 	environment.ambient_light_energy = 0.42
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.sdfgi_enabled = true
+	environment.sdfgi_use_occlusion = true
+	environment.ssao_enabled = true
+	environment.ssao_radius = 2.4
+	environment.ssao_intensity = 2.0
+	environment.ssil_enabled = true
+	environment.ssil_radius = 3.0
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.55
+	environment.glow_bloom = 0.08
+	environment.volumetric_fog_enabled = true
+	environment.volumetric_fog_density = 0.012
 	environment.fog_enabled = true
 	environment.fog_light_color = Color(0.075, 0.08, 0.085)
 	environment.fog_density = 0.009
@@ -132,12 +144,7 @@ func build_world():
 			mall.add_child(light)
 			mall_lights.append(light)
 			var fixture = box(mall, Vector3(x, 5.88, z), Vector3(2.2, 0.12, 0.48), material(Color(0.62, 0.65, 0.65), 0.2, 0.3), false)
-	for side in [-1, 1]:
-		for z in [-20, -10, 0, 10, 20]:
-			var shop_x = side * 15.0
-			box(mall, Vector3(shop_x, 2.0, z), Vector3(11.5, 4.0, 0.35), dark_mat, true)
-			box(mall, Vector3(shop_x, 3.9, z), Vector3(11.5, 0.45, 0.5), wall_mat, false)
-			var sign = label_3d(mall, Vector3(shop_x, 3.0, z - 0.28), ["MERCURY", "CLOTHING", "HOME & CO", "TOYS", "NORTH STAR"][posmod(z + 20, 5)], Color(0.72, 0.7, 0.62))
+	build_atrium_details(mall)
 	box(mall, Vector3(-3.75, 2.2, -27), Vector3(2.5, 4.4, 0.3), wall_mat, true)
 	box(mall, Vector3(3.75, 2.2, -27), Vector3(2.5, 4.4, 0.3), wall_mat, true)
 	box(mall, Vector3(-3.75, 2.2, 27), Vector3(2.5, 4.4, 0.3), wall_mat, true)
@@ -150,8 +157,7 @@ func build_world():
 	box(mall, Vector3(10, 2.0, -17), Vector3(8, 4, 0.35), wall_mat, true)
 	box(mall, Vector3(-10, 2.0, 14), Vector3(8, 4, 0.35), wall_mat, true)
 	box(mall, Vector3(10, 2.0, 14), Vector3(8, 4, 0.35), wall_mat, true)
-	for i in range(8):
-		box(mall, Vector3(-2.8 + i * 0.8, 0.3 + i * 0.27, 9 - i * 0.9), Vector3(0.7, 0.2, 3.5), material(Color(0.24, 0.25, 0.25)), true)
+	build_escalator(mall)
 	build_security_office(mall)
 	build_food_court(mall)
 	build_parking(mall)
@@ -162,6 +168,149 @@ func build_world():
 	outside_light.rotation_degrees = Vector3(-55, -25, 0)
 	outside_light.light_energy = 0.12
 	mall.add_child(outside_light)
+
+func build_atrium_details(parent):
+	for x in [-9.5, 9.5]:
+		for z in [-22.0, -10.0, 2.0, 14.0, 25.0]:
+			var column = MeshInstance3D.new()
+			var shaft = CylinderMesh.new()
+			shaft.top_radius = 0.42
+			shaft.bottom_radius = 0.56
+			shaft.height = 5.7
+			shaft.radial_segments = 24
+			column.mesh = shaft
+			column.position = Vector3(x, 2.85, z)
+			column.material_override = material(Color(0.29, 0.3, 0.29), 0.32, 0.04)
+			parent.add_child(column)
+			for cap_y in [0.16, 5.52]:
+				var cap = MeshInstance3D.new()
+				var cap_mesh = CylinderMesh.new()
+				cap_mesh.top_radius = 0.68
+				cap_mesh.bottom_radius = 0.68
+				cap_mesh.height = 0.18
+				cap_mesh.radial_segments = 32
+				cap.mesh = cap_mesh
+				cap.position = Vector3(x, cap_y, z)
+				cap.material_override = material(Color(0.48, 0.43, 0.34), 0.24, 0.08)
+				parent.add_child(cap)
+	for side in [-1, 1]:
+		var index := 0
+		for z in [-20, -10, 0, 10, 20]:
+			build_storefront(parent, side, float(z), index)
+			index += 1
+	for position in [Vector3(-7.5, 0, -17), Vector3(7.5, 0, -17), Vector3(-7.5, 0, 17), Vector3(7.5, 0, 17)]:
+		build_planter(parent, position)
+	var chandelier = MeshInstance3D.new()
+	var ring = TorusMesh.new()
+	ring.inner_radius = 1.15
+	ring.outer_radius = 1.28
+	ring.rings = 16
+	ring.ring_segments = 48
+	chandelier.mesh = ring
+	chandelier.position = Vector3(0, 5.55, -2)
+	chandelier.material_override = material(Color(0.52, 0.43, 0.29), 0.2, 0.22)
+	parent.add_child(chandelier)
+	for i in range(12):
+		var angle = TAU * float(i) / 12.0
+		var pendant = MeshInstance3D.new()
+		var bulb = SphereMesh.new()
+		bulb.radius = 0.09
+		bulb.height = 0.18
+		pendant.mesh = bulb
+		pendant.position = Vector3(cos(angle) * 1.22, 5.22, -2 + sin(angle) * 1.22)
+		pendant.material_override = material(Color(0.88, 0.72, 0.48), 0.18, 1.8)
+		parent.add_child(pendant)
+
+func build_storefront(parent, side: int, center_z: float, index: int):
+	var front_x = side * 10.45
+	var rear_x = side * 20.2
+	var glass = material(Color(0.19, 0.28, 0.3, 0.22), 0.12, 0.08)
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.metallic = 0.34
+	glass.roughness = 0.12
+	var frame = material(Color(0.12, 0.14, 0.15), 0.24, 0.08)
+	var trim = material(Color(0.52, 0.43, 0.31), 0.25, 0.12)
+	box(parent, Vector3(rear_x, 2.0, center_z), Vector3(0.3, 4.0, 9.6), material(Color(0.11, 0.12, 0.12)), true)
+	for z_offset in [-4.7, 4.7]:
+		box(parent, Vector3(side * 15.3, 2.0, center_z + z_offset), Vector3(9.8, 4.0, 0.25), frame, true)
+	for z_offset in [-4.35, -2.05, 2.05, 4.35]:
+		box(parent, Vector3(front_x, 2.0, center_z + z_offset), Vector3(0.16, 4.0, 0.12), frame, false)
+	for z_offset in [-3.2, 3.2]:
+		var pane = box(parent, Vector3(front_x, 2.05, center_z + z_offset), Vector3(0.055, 3.65, 2.05), glass, false)
+		pane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var sign_panel = box(parent, Vector3(front_x, 4.05, center_z), Vector3(0.28, 0.56, 8.9), frame, false)
+	var sign_text = ["MERCURY / DEPARTMENT", "CLOTHING / STUDIO", "HOME & CO / LIVING", "TOYS / PLAYROOM", "NORTH STAR / CINEMA"][index]
+	var sign = label_3d(parent, Vector3(front_x - side * 0.18, 4.02, center_z), sign_text, Color(0.83, 0.74, 0.56))
+	var door = box(parent, Vector3(front_x, 1.75, center_z), Vector3(0.1, 3.45, 1.55), glass, false)
+	door.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	box(parent, Vector3(front_x - side * 0.09, 1.75, center_z - 0.82), Vector3(0.16, 3.55, 0.12), trim, false)
+	box(parent, Vector3(front_x - side * 0.09, 1.75, center_z + 0.82), Vector3(0.16, 3.55, 0.12), trim, false)
+	for shelf_z in [-2.8, 2.8]:
+		box(parent, Vector3(side * 12.0, 1.1, center_z + shelf_z), Vector3(2.1, 0.14, 1.1), material(Color(0.2, 0.18, 0.15)), false)
+		for tier in [1.5, 2.15]:
+			box(parent, Vector3(side * 12.0, tier, center_z + shelf_z), Vector3(1.9, 0.08, 0.92), trim, false)
+	for display_index in range(3):
+		var display = MeshInstance3D.new()
+		var shape = CylinderMesh.new()
+		shape.top_radius = 0.35
+		shape.bottom_radius = 0.42
+		shape.height = 0.85
+		display.mesh = shape
+		display.position = Vector3(side * (12.3 + display_index * 1.8), 0.43, center_z + (display_index - 1) * 1.15)
+		display.material_override = material(Color(0.31 + 0.035 * index, 0.27, 0.21), 0.38)
+		parent.add_child(display)
+
+func build_planter(parent, position: Vector3):
+	var pot = MeshInstance3D.new()
+	var pot_mesh = CylinderMesh.new()
+	pot_mesh.top_radius = 0.48
+	pot_mesh.bottom_radius = 0.34
+	pot_mesh.height = 0.62
+	pot.mesh = pot_mesh
+	pot.position = position + Vector3(0, 0.31, 0)
+	pot.material_override = material(Color(0.19, 0.2, 0.18), 0.72)
+	parent.add_child(pot)
+	for i in range(7):
+		var leaf = MeshInstance3D.new()
+		var leaf_mesh = SphereMesh.new()
+		leaf_mesh.radius = 0.22
+		leaf_mesh.height = 0.72
+		leaf.mesh = leaf_mesh
+		var angle = TAU * float(i) / 7.0
+		leaf.position = position + Vector3(cos(angle) * 0.28, 0.86 + randf_range(0.0, 0.24), sin(angle) * 0.28)
+		leaf.scale = Vector3(0.72, 1.0, 0.72)
+		leaf.material_override = material(Color(0.09, 0.17 + randf() * 0.08, 0.12), 0.92)
+		parent.add_child(leaf)
+
+func build_escalator(parent):
+	var ramp = MeshInstance3D.new()
+	var ramp_mesh = BoxMesh.new()
+	ramp_mesh.size = Vector3(4.2, 0.18, 12.0)
+	ramp.mesh = ramp_mesh
+	ramp.position = Vector3(0, 1.0, 5.5)
+	ramp.rotation.x = -0.12
+	ramp.material_override = material(Color(0.17, 0.18, 0.18), 0.42, 0.05)
+	parent.add_child(ramp)
+	var ramp_body = StaticBody3D.new()
+	ramp_body.position = ramp.position
+	ramp_body.rotation = ramp.rotation
+	var ramp_collision = CollisionShape3D.new()
+	var ramp_shape = BoxShape3D.new()
+	ramp_shape.size = ramp_mesh.size
+	ramp_collision.shape = ramp_shape
+	ramp_body.add_child(ramp_collision)
+	parent.add_child(ramp_body)
+	for side in [-1.0, 1.0]:
+		var rail = MeshInstance3D.new()
+		var rail_mesh = CylinderMesh.new()
+		rail_mesh.top_radius = 0.055
+		rail_mesh.bottom_radius = 0.055
+		rail_mesh.height = 12.0
+		rail.mesh = rail_mesh
+		rail.position = Vector3(side * 2.05, 1.65, 5.5)
+		rail.rotation.x = PI / 2.0 - 0.12
+		rail.material_override = material(Color(0.46, 0.47, 0.44), 0.18, 0.1)
+		parent.add_child(rail)
 
 func build_security_office(parent):
 	var office = Node3D.new()
@@ -331,14 +480,14 @@ func build_cctv_ui():
 
 func build_overlay():
 	overlay = ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.86)
+	overlay.color = Color(0, 0, 0, 0.64)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.visible = false
 	ui.add_child(overlay)
 	panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(460, 340)
+	panel.custom_minimum_size = Vector2(560, 470)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	panel.position = Vector2(-230, -170)
+	panel.position = Vector2(-280, -235)
 	panel.add_theme_stylebox_override("panel", panel_style())
 	overlay.add_child(panel)
 
@@ -599,10 +748,17 @@ func show_menu(title_text: String, actions: Array, body_text := ""):
 	var layout = VBoxContainer.new()
 	layout.add_theme_constant_override("separation", 12)
 	panel.add_child(layout)
+	var brand = TextureRect.new()
+	brand.texture = load("res://assets/afterhours_logo.svg")
+	brand.custom_minimum_size = Vector2(440, 126)
+	brand.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	brand.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	layout.add_child(brand)
 	var title = Label.new()
-	title.text = title_text
-	title.add_theme_font_size_override("font_size", 25)
-	title.add_theme_color_override("font_color", Color(0.82, 0.8, 0.72))
+	title.text = title_text if title_text != "AFTERHOURS" else "NIGHT SECURITY  /  SHIFT 001"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 17)
+	title.add_theme_color_override("font_color", Color(0.72, 0.75, 0.72))
 	layout.add_child(title)
 	if body_text != "":
 		var body = Label.new()
@@ -732,7 +888,7 @@ func finish_game():
 
 func panel_style() -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.035, 0.04, 0.045, 0.97)
+	style.bg_color = Color(0.018, 0.023, 0.028, 0.78)
 	style.border_color = Color(0.34, 0.34, 0.31, 0.8)
 	style.set_border_width_all(1)
 	style.set_content_margin_all(24)
