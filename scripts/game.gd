@@ -163,6 +163,7 @@ func build_world():
 	build_escalator(mall)
 	build_security_office(mall)
 	build_food_court(mall)
+	build_concourse_props(mall)
 	build_parking(mall)
 	build_doors(mall)
 	build_anomaly_figure(mall)
@@ -173,29 +174,34 @@ func build_world():
 	mall.add_child(outside_light)
 
 func build_atrium_details(parent):
-	for x in [-9.5, 9.5]:
-		for z in [-22.0, -10.0, 2.0, 14.0, 25.0]:
-			var column = MeshInstance3D.new()
-			var shaft = CylinderMesh.new()
-			shaft.top_radius = 0.42
-			shaft.bottom_radius = 0.56
-			shaft.height = 5.7
-			shaft.radial_segments = 24
-			column.mesh = shaft
-			column.position = Vector3(x, 2.85, z)
-			column.material_override = material(Color(0.29, 0.3, 0.29), 0.32, 0.04)
-			parent.add_child(column)
-			for cap_y in [0.16, 5.52]:
-				var cap = MeshInstance3D.new()
-				var cap_mesh = CylinderMesh.new()
-				cap_mesh.top_radius = 0.68
-				cap_mesh.bottom_radius = 0.68
-				cap_mesh.height = 0.18
-				cap_mesh.radial_segments = 32
-				cap.mesh = cap_mesh
-				cap.position = Vector3(x, cap_y, z)
-				cap.material_override = material(Color(0.48, 0.43, 0.34), 0.24, 0.08)
-				parent.add_child(cap)
+	if ResourceLoader.exists("res://assets/mall_column_cladding.glb"):
+		for x in [-9.5, 9.5]:
+			for z in [-22.0, -10.0, 2.0, 14.0, 25.0]:
+				add_scene_asset(parent, "res://assets/mall_column_cladding.glb", Vector3(x, 0.0, z), Vector3.ZERO, Vector3(1.35, 1.42, 1.35))
+	else:
+		for x in [-9.5, 9.5]:
+			for z in [-22.0, -10.0, 2.0, 14.0, 25.0]:
+				var column = MeshInstance3D.new()
+				var shaft = CylinderMesh.new()
+				shaft.top_radius = 0.42
+				shaft.bottom_radius = 0.56
+				shaft.height = 5.7
+				shaft.radial_segments = 24
+				column.mesh = shaft
+				column.position = Vector3(x, 2.85, z)
+				column.material_override = material(Color(0.29, 0.3, 0.29), 0.32, 0.04)
+				parent.add_child(column)
+				for cap_y in [0.16, 5.52]:
+					var cap = MeshInstance3D.new()
+					var cap_mesh = CylinderMesh.new()
+					cap_mesh.top_radius = 0.68
+					cap_mesh.bottom_radius = 0.68
+					cap_mesh.height = 0.18
+					cap_mesh.radial_segments = 32
+					cap.mesh = cap_mesh
+					cap.position = Vector3(x, cap_y, z)
+					cap.material_override = material(Color(0.48, 0.43, 0.34), 0.24, 0.08)
+					parent.add_child(cap)
 	for side in [-1, 1]:
 		var index := 0
 		for z in [-20, -10, 0, 10, 20]:
@@ -274,7 +280,34 @@ func build_storefront(parent, side: int, center_z: float, index: int):
 			display.material_override = material(Color(0.31 + 0.035 * index, 0.27, 0.21), 0.38)
 			parent.add_child(display)
 
+func add_scene_asset(parent: Node3D, path: String, position: Vector3, rotation: Vector3 = Vector3.ZERO, asset_scale: Vector3 = Vector3.ONE) -> Node3D:
+	if not ResourceLoader.exists(path):
+		return null
+	var packed = load(path) as PackedScene
+	if packed == null:
+		return null
+	var instance = packed.instantiate() as Node3D
+	if instance == null:
+		return null
+	instance.position = position
+	instance.rotation = rotation
+	instance.scale = asset_scale
+	parent.add_child(instance)
+	for mesh_node in instance.find_children("*", "MeshInstance3D", true, false):
+		mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mesh_node.lod_bias = 1.5
+	return instance
+
+func build_concourse_props(parent):
+	if not ResourceLoader.exists("res://assets/concourse_litter_bin.glb"):
+		return
+	for position in [Vector3(6.0, 0.0, -14.0), Vector3(-6.0, 0.0, 12.0), Vector3(6.0, 0.0, 22.0)]:
+		add_scene_asset(parent, "res://assets/concourse_litter_bin.glb", position)
+
 func build_planter(parent, position: Vector3):
+	if ResourceLoader.exists("res://assets/concourse_planter_bench.glb"):
+		add_scene_asset(parent, "res://assets/concourse_planter_bench.glb", position)
+		return
 	var pot = MeshInstance3D.new()
 	var pot_mesh = CylinderMesh.new()
 	pot_mesh.top_radius = 0.48
@@ -297,34 +330,39 @@ func build_planter(parent, position: Vector3):
 		parent.add_child(leaf)
 
 func build_escalator(parent):
-	var ramp = MeshInstance3D.new()
-	var ramp_mesh = BoxMesh.new()
-	ramp_mesh.size = Vector3(4.2, 0.18, 12.0)
-	ramp.mesh = ramp_mesh
-	ramp.position = Vector3(0, 1.0, 5.5)
-	ramp.rotation.x = -0.12
-	ramp.material_override = material(Color(0.17, 0.18, 0.18), 0.42, 0.05)
-	parent.add_child(ramp)
+	var ramp_size = Vector3(4.2, 0.18, 12.0)
+	var ramp_transform = Transform3D(Basis(Vector3.RIGHT, -0.12), Vector3(0, 1.0, 5.5))
+	if ResourceLoader.exists("res://assets/concourse_escalator.glb"):
+		add_scene_asset(parent, "res://assets/concourse_escalator.glb", Vector3(0, 0.0, 5.5), Vector3.ZERO, Vector3(3.0, 0.3, 1.2))
+	else:
+		var ramp = MeshInstance3D.new()
+		var ramp_mesh = BoxMesh.new()
+		ramp_mesh.size = ramp_size
+		ramp.mesh = ramp_mesh
+		ramp.position = ramp_transform.origin
+		ramp.rotation.x = -0.12
+		ramp.material_override = material(Color(0.17, 0.18, 0.18), 0.42, 0.05)
+		parent.add_child(ramp)
 	var ramp_body = StaticBody3D.new()
-	ramp_body.position = ramp.position
-	ramp_body.rotation = ramp.rotation
+	ramp_body.transform = ramp_transform
 	var ramp_collision = CollisionShape3D.new()
 	var ramp_shape = BoxShape3D.new()
-	ramp_shape.size = ramp_mesh.size
+	ramp_shape.size = ramp_size
 	ramp_collision.shape = ramp_shape
 	ramp_body.add_child(ramp_collision)
 	parent.add_child(ramp_body)
-	for side in [-1.0, 1.0]:
-		var rail = MeshInstance3D.new()
-		var rail_mesh = CylinderMesh.new()
-		rail_mesh.top_radius = 0.055
-		rail_mesh.bottom_radius = 0.055
-		rail_mesh.height = 12.0
-		rail.mesh = rail_mesh
-		rail.position = Vector3(side * 2.05, 1.65, 5.5)
-		rail.rotation.x = PI / 2.0 - 0.12
-		rail.material_override = material(Color(0.46, 0.47, 0.44), 0.18, 0.1)
-		parent.add_child(rail)
+	if not ResourceLoader.exists("res://assets/concourse_escalator.glb"):
+		for side in [-1.0, 1.0]:
+			var rail = MeshInstance3D.new()
+			var rail_mesh = CylinderMesh.new()
+			rail_mesh.top_radius = 0.055
+			rail_mesh.bottom_radius = 0.055
+			rail_mesh.height = 12.0
+			rail.mesh = rail_mesh
+			rail.position = Vector3(side * 2.05, 1.65, 5.5)
+			rail.rotation.x = PI / 2.0 - 0.12
+			rail.material_override = material(Color(0.46, 0.47, 0.44), 0.18, 0.1)
+			parent.add_child(rail)
 
 func build_security_office(parent):
 	var office = Node3D.new()
