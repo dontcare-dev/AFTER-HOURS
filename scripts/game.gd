@@ -6,6 +6,7 @@ const SaveSystem = preload("res://scripts/save_system.gd")
 const HauntingScript = preload("res://scripts/haunting.gd")
 
 var player
+var menu_camera: Camera3D
 var elapsed := 0.0
 var shift_duration := 360.0
 var current_objective := "Report to the security office."
@@ -47,6 +48,7 @@ const WORLD_SCALE := 1.35
 func _ready():
 	build_world()
 	build_player()
+	build_menu_camera()
 	build_haunting()
 	build_ui()
 	set_objective("Report to the security office.")
@@ -471,6 +473,14 @@ func build_player():
 	add_child(player)
 	player.interacted.connect(_on_interacted)
 
+func build_menu_camera():
+	menu_camera = Camera3D.new()
+	menu_camera.name = "TitleCamera"
+	menu_camera.position = Vector3(0, 4.8, 35 * WORLD_SCALE)
+	menu_camera.fov = 58.0
+	add_child(menu_camera)
+	menu_camera.look_at(Vector3(0, 2.5, -12 * WORLD_SCALE), Vector3.UP)
+
 func build_haunting():
 	haunting = Node3D.new()
 	haunting.name = "HauntingDirector"
@@ -812,6 +822,7 @@ func close_terminal():
 
 func show_main_menu():
 	paused = true
+	menu_camera.current = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	overlay.visible = true
 	show_menu("AFTERHOURS", [["NEW SHIFT", "new"], ["CONTINUE", "load"], ["SETTINGS", "settings"], ["CREDITS", "credits"], ["EXIT", "exit"]], "A SHIFT THAT NEVER ENDS")
@@ -887,6 +898,7 @@ func _menu_action(action: String):
 			decisions.clear()
 			event_flags.clear()
 			player.position = Vector3(-13 * WORLD_SCALE, 0.1, 21.5 * WORLD_SCALE)
+			player.camera.current = true
 			if is_instance_valid(haunting):
 				haunting.reset_hunt()
 			set_objective("Report to the security office.")
