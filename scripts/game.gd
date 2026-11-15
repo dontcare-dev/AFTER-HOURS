@@ -23,6 +23,7 @@ var clock_label: Label
 var prompt_label: Label
 var objective_label: Label
 var stamina_bar: ProgressBar
+var battery_label: Label
 var message_label: Label
 var overlay: ColorRect
 var panel: PanelContainer
@@ -285,6 +286,7 @@ func build_ui():
 	stamina_bar.max_value = 100
 	stamina_bar.show_percentage = false
 	ui.add_child(stamina_bar)
+	battery_label = make_label(ui, "FLASHLIGHT  /  100%", Vector2(28, 111), 12, Color(0.62, 0.68, 0.67))
 	message_label = make_label(ui, "", Vector2(0, 110), 18, Color(0.86, 0.84, 0.76))
 	message_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	message_label.size = Vector2(700, 40)
@@ -465,6 +467,7 @@ func update_clock():
 
 func update_hud():
 	stamina_bar.value = player.stamina
+	battery_label.text = "FLASHLIGHT  /  %d%%" % int(player.flashlight_battery)
 	var hit = player.ray.get_collider() if player.ray.is_colliding() else null
 	if hit is Area3D and hit.has_method("activate"):
 		prompt_label.text = "[ E ]  " + hit.display_name
