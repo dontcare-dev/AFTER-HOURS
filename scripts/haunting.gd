@@ -8,6 +8,13 @@ var active := false
 var drone_player: AudioStreamPlayer
 var sting_player: AudioStreamPlayer
 var rng := RandomNumberGenerator.new()
+var figure_torso: MeshInstance3D
+var figure_head: MeshInstance3D
+var arm_left: Node3D
+var arm_right: Node3D
+var leg_left: Node3D
+var leg_right: Node3D
+var idle_time := 0.0
 
 func configure(actor: CharacterBody3D, game: Node):
 	target = actor
@@ -24,7 +31,8 @@ func build_figure():
 	body_material.emission_enabled = true
 	body_material.emission = Color(0.008, 0.012, 0.018)
 	body_material.emission_energy_multiplier = 0.2
-	var torso = MeshInstance3D.new()
+	figure_torso = MeshInstance3D.new()
+	var torso = figure_torso
 	var torso_mesh = CapsuleMesh.new()
 	torso_mesh.radius = 0.31
 	torso_mesh.height = 1.65
@@ -32,7 +40,8 @@ func build_figure():
 	torso.position.y = 1.0
 	torso.material_override = body_material
 	add_child(torso)
-	var head = MeshInstance3D.new()
+	figure_head = MeshInstance3D.new()
+	var head = figure_head
 	var head_mesh = SphereMesh.new()
 	head_mesh.radius = 0.24
 	head_mesh.height = 0.48
@@ -40,6 +49,35 @@ func build_figure():
 	head.position.y = 2.0
 	head.material_override = body_material
 	add_child(head)
+	for side in [-1.0, 1.0]:
+		var arm = Node3D.new()
+		arm.position = Vector3(side * 0.34, 1.55, 0.0)
+		var arm_mesh = MeshInstance3D.new()
+		var arm_shape = CapsuleMesh.new()
+		arm_shape.radius = 0.115
+		arm_shape.height = 0.9
+		arm_mesh.mesh = arm_shape
+		arm_mesh.position = Vector3(0.0, -0.34, 0.0)
+		arm_mesh.material_override = body_material
+		arm.add_child(arm_mesh)
+		add_child(arm)
+		var leg = Node3D.new()
+		leg.position = Vector3(side * 0.16, 0.55, 0.0)
+		var leg_mesh = MeshInstance3D.new()
+		var leg_shape = CapsuleMesh.new()
+		leg_shape.radius = 0.14
+		leg_shape.height = 1.05
+		leg_mesh.mesh = leg_shape
+		leg_mesh.position.y = -0.22
+		leg_mesh.material_override = body_material
+		leg.add_child(leg_mesh)
+		add_child(leg)
+		if side < 0.0:
+			arm_left = arm
+			leg_left = leg
+		else:
+			arm_right = arm
+			leg_right = leg
 	for side in [-1.0, 1.0]:
 		var eye = MeshInstance3D.new()
 		var eye_mesh = SphereMesh.new()
@@ -89,6 +127,14 @@ func make_drone() -> AudioStreamWAV:
 	return stream
 
 func _process(delta):
+	idle_time += delta
+	if visible:
+		figure_torso.position.y = 1.0 + sin(idle_time * 2.0) * 0.025
+		figure_head.rotation.y = sin(idle_time * 0.8) * 0.18
+		arm_left.rotation.z = -0.12 + sin(idle_time * 2.3) * 0.07
+		arm_right.rotation.z = 0.12 - sin(idle_time * 2.3) * 0.07
+		leg_left.rotation.x = sin(idle_time * 2.3) * 0.025
+		leg_right.rotation.x = -sin(idle_time * 2.3) * 0.025
 	if not is_instance_valid(target) or not is_instance_valid(controller):
 		return
 	if controller.paused or controller.terminal_open or controller.ending:
