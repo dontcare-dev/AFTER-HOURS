@@ -126,7 +126,13 @@ func build_world():
 	var tile_mat = material(Color(0.28, 0.28, 0.26), 0.12)
 	var ceiling_mat = material(Color(0.13, 0.14, 0.14))
 	box(mall, Vector3(0, -0.25, 0), Vector3(42, 0.5, 58), floor_mat, true)
-	box(mall, Vector3(0, 6.2, 0), Vector3(42, 0.5, 58), ceiling_mat, false)
+	box(mall, Vector3(-12.0, 6.2, 0), Vector3(18.0, 0.5, 58), ceiling_mat, false)
+	var skylight_material = material(Color(0.09, 0.13, 0.15, 0.24), 0.12, 0.08)
+	skylight_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	box(mall, Vector3(0, 6.2, 0), Vector3(6.0, 0.16, 58), skylight_material, false)
+	box(mall, Vector3(12.0, 6.2, 0), Vector3(18.0, 0.5, 58), ceiling_mat, false)
+	for z in range(-27, 29, 6):
+		box(mall, Vector3(0, 6.1, z), Vector3(6.2, 0.12, 0.12), material(Color(0.36, 0.38, 0.37), 0.24), false)
 	box(mall, Vector3(-21, 3, 0), Vector3(0.5, 6, 58), wall_mat, true)
 	box(mall, Vector3(21, 3, 0), Vector3(0.5, 6, 58), wall_mat, true)
 	box(mall, Vector3(0, 3, -29), Vector3(42, 6, 0.5), wall_mat, true)
@@ -778,7 +784,7 @@ func show_main_menu():
 	paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	overlay.visible = true
-	show_menu("AFTERHOURS", [["NEW SHIFT", "new"], ["CONTINUE", "load"], ["SETTINGS", "settings"], ["CREDITS", "credits"], ["EXIT", "exit"]], "NIGHT SECURITY  /  SHIFT 001")
+	show_menu("AFTERHOURS", [["NEW SHIFT", "new"], ["CONTINUE", "load"], ["SETTINGS", "settings"], ["CREDITS", "credits"], ["EXIT", "exit"]], "A SHIFT THAT NEVER ENDS")
 
 func open_pause():
 	paused = true
@@ -850,7 +856,7 @@ func _menu_action(action: String):
 			discovered.clear()
 			decisions.clear()
 			event_flags.clear()
-			player.position = Vector3(-13, 0.1, 21.5)
+			player.position = Vector3(-13 * WORLD_SCALE, 0.1, 21.5 * WORLD_SCALE)
 			if is_instance_valid(haunting):
 				haunting.reset_hunt()
 			set_objective("Report to the security office.")
