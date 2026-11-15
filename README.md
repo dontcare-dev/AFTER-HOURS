@@ -3,7 +3,7 @@
 A first-person psychological horror game for Windows, built with Godot 4.3.
 
 ## Run
-Open the repository in Godot 4.3 or newer and press F6/F5. The project uses the Compatibility renderer.
+Open the repository in Godot 4.3 or newer and press F6/F5. The project uses Godot Forward+ rendering with cinematic lighting. The exported game uses a custom AFTERHOURS logo and icon; the default engine splash is disabled.
 
 ## Controls
 WASD move · Mouse look · Shift sprint · Ctrl crouch · E interact · F flashlight · Tab objectives · Esc pause. The flashlight drains while active and recharges while switched off.
