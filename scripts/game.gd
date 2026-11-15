@@ -53,7 +53,7 @@ func _ready():
 	build_ui()
 	set_objective("Report to the security office.")
 	show_message("SHIFT STARTED  /  12:00 AM", 4.0)
-	show_main_menu()
+	show_story_intro()
 
 func _process(delta):
 	if paused or terminal_open or ending:
@@ -101,21 +101,14 @@ func build_world():
 	environment.ambient_light_color = Color(0.32, 0.34, 0.38)
 	environment.ambient_light_energy = 0.42
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment.sdfgi_enabled = true
-	environment.sdfgi_use_occlusion = true
-	environment.ssao_enabled = true
-	environment.ssao_radius = 2.4
-	environment.ssao_intensity = 2.0
-	environment.ssil_enabled = true
-	environment.ssil_radius = 3.0
-	environment.glow_enabled = true
-	environment.glow_intensity = 0.55
-	environment.glow_bloom = 0.08
-	environment.volumetric_fog_enabled = true
-	environment.volumetric_fog_density = 0.012
+	environment.sdfgi_enabled = false
+	environment.ssao_enabled = false
+	environment.ssil_enabled = false
+	environment.glow_enabled = false
+	environment.volumetric_fog_enabled = false
 	environment.fog_enabled = true
 	environment.fog_light_color = Color(0.075, 0.08, 0.085)
-	environment.fog_density = 0.009
+	environment.fog_density = 0.004
 	world_env.environment = environment
 	add_child(world_env)
 	var mall = Node3D.new()
@@ -143,13 +136,13 @@ func build_world():
 		box(mall, Vector3(x, 0.012, 0), Vector3(0.035, 0.02, 56), tile_mat, false)
 	for z in range(-25, 29, 5):
 		box(mall, Vector3(0, 0.013, z), Vector3(40, 0.02, 0.035), tile_mat, false)
-	for x in [-18, -12, -6, 0, 6, 12, 18]:
-		for z in [-23, -13, -3, 7, 17, 25]:
+	for x in [-15, 0, 15]:
+		for z in [-20, -5, 10, 25]:
 			var light = OmniLight3D.new()
 			light.position = Vector3(x, 5.55, z)
 			light.light_color = Color(0.78, 0.82, 0.88)
 			light.light_energy = 0.7 if z > -20 else 0.42
-			light.omni_range = 10.0
+			light.omni_range = 11.0
 			light.shadow_enabled = false
 			mall.add_child(light)
 			mall_lights.append(light)
@@ -255,20 +248,28 @@ func build_storefront(parent, side: int, center_z: float, index: int):
 	door.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	box(parent, Vector3(front_x - side * 0.09, 1.75, center_z - 0.82), Vector3(0.16, 3.55, 0.12), trim, false)
 	box(parent, Vector3(front_x - side * 0.09, 1.75, center_z + 0.82), Vector3(0.16, 3.55, 0.12), trim, false)
-	for shelf_z in [-2.8, 2.8]:
-		box(parent, Vector3(side * 12.0, 1.1, center_z + shelf_z), Vector3(2.1, 0.14, 1.1), material(Color(0.2, 0.18, 0.15)), false)
-		for tier in [1.5, 2.15]:
-			box(parent, Vector3(side * 12.0, tier, center_z + shelf_z), Vector3(1.9, 0.08, 0.92), trim, false)
-	for display_index in range(3):
-		var display = MeshInstance3D.new()
-		var shape = CylinderMesh.new()
-		shape.top_radius = 0.35
-		shape.bottom_radius = 0.42
-		shape.height = 0.85
-		display.mesh = shape
-		display.position = Vector3(side * (12.3 + display_index * 1.8), 0.43, center_z + (display_index - 1) * 1.15)
-		display.material_override = material(Color(0.31 + 0.035 * index, 0.27, 0.21), 0.38)
-		parent.add_child(display)
+	if ResourceLoader.exists("res://assets/retail_shopfloor.glb"):
+		var shop_pack := load("res://assets/retail_shopfloor.glb") as PackedScene
+		if shop_pack:
+			var shop = shop_pack.instantiate()
+			shop.position = Vector3(side * 15.3, 0.0, center_z)
+			shop.rotation.y = -float(side) * PI * 0.5
+			parent.add_child(shop)
+	else:
+		for shelf_z in [-2.8, 2.8]:
+			box(parent, Vector3(side * 12.0, 1.1, center_z + shelf_z), Vector3(2.1, 0.14, 1.1), material(Color(0.2, 0.18, 0.15)), false)
+			for tier in [1.5, 2.15]:
+				box(parent, Vector3(side * 12.0, tier, center_z + shelf_z), Vector3(1.9, 0.08, 0.92), trim, false)
+		for display_index in range(3):
+			var display = MeshInstance3D.new()
+			var shape = CylinderMesh.new()
+			shape.top_radius = 0.35
+			shape.bottom_radius = 0.42
+			shape.height = 0.85
+			display.mesh = shape
+			display.position = Vector3(side * (12.3 + display_index * 1.8), 0.43, center_z + (display_index - 1) * 1.15)
+			display.material_override = material(Color(0.31 + 0.035 * index, 0.27, 0.21), 0.38)
+			parent.add_child(display)
 
 func build_planter(parent, position: Vector3):
 	var pot = MeshInstance3D.new()
@@ -820,6 +821,18 @@ func close_terminal():
 	feed.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+func show_story_intro():
+	paused = true
+	menu_camera.current = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	overlay.visible = true
+	var story = "NORTHSTAR MALL CLOSED EIGHT YEARS AGO. THE COMPANY SAID IT WAS A ROUTINE SHUTDOWN.\\n\\nNIGHT GUARD ELIAS VENN WAS THE LAST PERSON TO CLOCK IN. HIS SHIFT LOG SHOWS HE LEFT AT 6:00 AM. THE CAMERAS SHOW HIM WALKING INTO THE SEALED CINEMA AT 3:17 AM.\\n\\nTHE BUILDING WAS NEVER REOPENED. TONIGHT, YOU HAVE BEEN SENT TO CATALOGUE THE REMAINING RECORDS BEFORE THE SITE IS DEMOLISHED.\\n\\nYOUR NAME IS ALREADY WRITTEN IN THE SHIFT BOOK."
+	show_menu("THE LAST SHIFT", [["CONTINUE", "intro_continue"], ["SKIP STORY", "intro_skip"]], story)
+	var glide = create_tween()
+	glide.set_parallel(true)
+	glide.tween_property(menu_camera, "position", menu_camera.position + Vector3(0.0, -0.35, -4.5), 16.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	glide.tween_property(menu_camera, "rotation", menu_camera.rotation + Vector3(0.015, 0.07, 0.0), 16.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
 func show_main_menu():
 	paused = true
 	menu_camera.current = true
@@ -888,6 +901,8 @@ func show_menu(title_text: String, actions: Array, body_text := ""):
 
 func _menu_action(action: String):
 	match action:
+		"intro_continue", "intro_skip":
+			show_main_menu()
 		"resume":
 			resume_game()
 		"objectives":
