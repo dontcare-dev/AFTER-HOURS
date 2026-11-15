@@ -874,7 +874,15 @@ func show_menu(title_text: String, actions: Array, body_text := ""):
 	for action in actions:
 		var button = Button.new()
 		button.text = action[0]
-		button.custom_minimum_size.y = 38
+		button.custom_minimum_size.y = 42
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_stylebox_override("normal", menu_button_style(Color(0.055, 0.067, 0.071, 0.92), Color(0.24, 0.29, 0.29, 0.8)))
+		button.add_theme_stylebox_override("hover", menu_button_style(Color(0.11, 0.14, 0.145, 0.98), Color(0.65, 0.57, 0.42, 0.95)))
+		button.add_theme_stylebox_override("pressed", menu_button_style(Color(0.18, 0.2, 0.19, 1.0), Color(0.82, 0.7, 0.5, 1.0)))
+		button.add_theme_stylebox_override("focus", menu_button_style(Color(0.08, 0.1, 0.11, 1.0), Color(0.65, 0.57, 0.42, 1.0)))
+		button.add_theme_color_override("font_color", Color(0.78, 0.8, 0.77))
+		button.add_theme_color_override("font_hover_color", Color(0.96, 0.88, 0.72))
+		button.add_theme_font_size_override("font_size", 15)
 		button.pressed.connect(_menu_action.bind(action[1]))
 		layout.add_child(button)
 
@@ -992,10 +1000,26 @@ func finish_game():
 		ending_body = "You make it outside, but your shift log is blank. The company says you never worked there. The next night, another guard takes your place."
 	show_menu(ending_title, [["PLAY AGAIN", "menu"]], ending_body)
 
+func menu_button_style(fill_color: Color, edge_color: Color) -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = fill_color
+	style.border_color = edge_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(5)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	return style
+
 func panel_style() -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.018, 0.023, 0.028, 0.78)
 	style.border_color = Color(0.34, 0.34, 0.31, 0.8)
 	style.set_border_width_all(1)
-	style.set_content_margin_all(24)
+	style.set_content_margin_all(28)
+	style.set_corner_radius_all(12)
+	style.shadow_color = Color(0, 0, 0, 0.55)
+	style.shadow_size = 24
+	style.shadow_offset = Vector2(0, 8)
 	return style
