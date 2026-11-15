@@ -42,6 +42,7 @@ var mall_lights: Array[OmniLight3D] = []
 var flicker_restore: Array = []
 var flicker_duration := 0.0
 var next_flicker := 36.0
+const WORLD_SCALE := 1.35
 
 func _ready():
 	build_world()
@@ -117,6 +118,7 @@ func build_world():
 	add_child(world_env)
 	var mall = Node3D.new()
 	mall.name = "Mall"
+	mall.scale = Vector3(WORLD_SCALE, 1.0, WORLD_SCALE)
 	add_child(mall)
 	var floor_mat = material(Color(0.19, 0.19, 0.18), 0.08)
 	var wall_mat = material(Color(0.32, 0.31, 0.28))
@@ -335,9 +337,25 @@ func build_security_office(parent):
 func build_food_court(parent):
 	for i in range(4):
 		var x = 7.0 + i * 3.0
-		var table = box(parent, Vector3(x, 0.85, -20), Vector3(2.0, 0.12, 1.2), material(Color(0.24, 0.2, 0.16)), true)
-		for side in [-1, 1]:
-			box(parent, Vector3(x, 0.45, -20 + side * 1.0), Vector3(0.22, 0.85, 0.22), material(Color(0.12, 0.12, 0.11)), true)
+		var top = MeshInstance3D.new()
+		var top_mesh = CylinderMesh.new()
+		top_mesh.top_radius = 0.92
+		top_mesh.bottom_radius = 0.92
+		top_mesh.height = 0.14
+		top_mesh.radial_segments = 32
+		top.mesh = top_mesh
+		top.position = Vector3(x, 0.88, -20)
+		top.material_override = material(Color(0.26, 0.22, 0.17), 0.28)
+		parent.add_child(top)
+		var stem = MeshInstance3D.new()
+		var stem_mesh = CylinderMesh.new()
+		stem_mesh.top_radius = 0.16
+		stem_mesh.bottom_radius = 0.22
+		stem_mesh.height = 0.72
+		stem.mesh = stem_mesh
+		stem.position = Vector3(x, 0.42, -20)
+		stem.material_override = material(Color(0.12, 0.13, 0.13), 0.3)
+		parent.add_child(stem)
 	box(parent, Vector3(15, 2, -27), Vector3(8, 4, 0.3), material(Color(0.28, 0.24, 0.19)), true)
 	label_3d(parent, Vector3(15, 3, -27.25), "FOOD COURT", Color(0.72, 0.62, 0.45))
 
@@ -345,8 +363,48 @@ func build_parking(parent):
 	box(parent, Vector3(0, -0.12, 34), Vector3(42, 0.3, 12), material(Color(0.075, 0.08, 0.085)), true)
 	for x in [-17, -8, 1, 10, 18]:
 		box(parent, Vector3(x, 2.2, 34), Vector3(0.35, 4.4, 0.35), material(Color(0.16, 0.17, 0.17)), true)
-	for x in [-14, -5, 4, 13]:
-		box(parent, Vector3(x, 0.8, 35), Vector3(4.5, 1.4, 1.8), material(Color(0.12, 0.14, 0.16)), true)
+	var car_colors = [Color(0.12, 0.16, 0.18), Color(0.2, 0.18, 0.15), Color(0.11, 0.12, 0.13), Color(0.24, 0.22, 0.18)]
+	for car_index in range(4):
+		var x = [-14, -5, 4, 13][car_index]
+		var car = MeshInstance3D.new()
+		var shell = SphereMesh.new()
+		shell.radius = 1.0
+		shell.height = 1.0
+		car.mesh = shell
+		car.scale = Vector3(2.25, 0.62, 1.05)
+		car.position = Vector3(x, 0.78, 35)
+		car.material_override = material(car_colors[car_index], 0.24, 0.015)
+		parent.add_child(car)
+		var cabin = MeshInstance3D.new()
+		var cabin_mesh = SphereMesh.new()
+		cabin_mesh.radius = 1.0
+		cabin_mesh.height = 1.0
+		cabin.mesh = cabin_mesh
+		cabin.scale = Vector3(1.05, 0.52, 0.83)
+		cabin.position = Vector3(x - 0.1, 1.23, 35)
+		var window_mat = material(Color(0.045, 0.075, 0.085), 0.12, 0.04)
+		cabin.material_override = window_mat
+		parent.add_child(cabin)
+		for wheel_side in [-1.0, 1.0]:
+			for wheel_end in [-1.0, 1.0]:
+				var wheel = MeshInstance3D.new()
+				var wheel_mesh = CylinderMesh.new()
+				wheel_mesh.top_radius = 0.34
+				wheel_mesh.bottom_radius = 0.34
+				wheel_mesh.height = 0.18
+				wheel.mesh = wheel_mesh
+				wheel.rotation.z = PI / 2.0
+				wheel.position = Vector3(x + wheel_end * 1.35, 0.42, 35 + wheel_side * 0.88)
+				wheel.material_override = material(Color(0.018, 0.02, 0.022), 0.92)
+				parent.add_child(wheel)
+		var collider = StaticBody3D.new()
+		collider.position = Vector3(x, 0.78, 35)
+		var collision = CollisionShape3D.new()
+		var collision_shape = BoxShape3D.new()
+		collision_shape.size = Vector3(4.2, 1.2, 1.8)
+		collision.shape = collision_shape
+		collider.add_child(collision)
+		parent.add_child(collider)
 	for x in [-18, -9, 0, 9, 18]:
 		var lamp = OmniLight3D.new()
 		lamp.position = Vector3(x, 3.8, 34)
@@ -403,7 +461,7 @@ func build_player():
 	player = CharacterBody3D.new()
 	player.name = "Player"
 	player.set_script(PlayerScript)
-	player.position = Vector3(-13, 0.1, 21.5)
+	player.position = Vector3(-13 * WORLD_SCALE, 0.1, 21.5 * WORLD_SCALE)
 	add_child(player)
 	player.interacted.connect(_on_interacted)
 
@@ -576,12 +634,12 @@ func handle_interaction(target):
 				show_message("LOCK RELEASED", 2.0)
 		"door_parking":
 			if completed.get("restricted_unlocked", false):
-				player.position = Vector3(0, 0.1, 31)
+				player.position = Vector3(0, 0.1, 31 * WORLD_SCALE)
 				show_message("PARKING LEVEL  /  CAMERA SIGNAL WEAK", 3.0)
 			else:
 				show_message("The access lock is still engaged.", 2.0)
 		"office_door":
-			player.position = Vector3(-13, 0.1, 21.5) if player.position.z > 18 else Vector3(-13, 0.1, 14)
+			player.position = Vector3(-13 * WORLD_SCALE, 0.1, 21.5 * WORLD_SCALE) if player.position.z > 18 * WORLD_SCALE else Vector3(-13 * WORLD_SCALE, 0.1, 14 * WORLD_SCALE)
 		"exit":
 			if elapsed >= 300.0:
 				finish_game()
@@ -697,14 +755,14 @@ func open_terminal():
 	show_message("CCTV  /  LEFT AND RIGHT ARROWS TO CHANGE CAMERA  /  ESC TO EXIT", 4.0)
 
 func set_feed_camera():
-	feed_camera.global_position = feed_positions[feed_index]
-	feed_camera.look_at(Vector3(0, 1.2, feed_positions[feed_index].z - 10), Vector3.UP)
+	feed_camera.global_position = Vector3(feed_positions[feed_index].x * WORLD_SCALE, feed_positions[feed_index].y, feed_positions[feed_index].z * WORLD_SCALE)
+	feed_camera.look_at(Vector3(0, 1.2, (feed_positions[feed_index].z - 10) * WORLD_SCALE), Vector3.UP)
 	if feed_index == 1:
-		feed_camera.look_at(Vector3(13, 1, -20), Vector3.UP)
+		feed_camera.look_at(Vector3(13 * WORLD_SCALE, 1, -20 * WORLD_SCALE), Vector3.UP)
 	elif feed_index == 2:
-		feed_camera.look_at(Vector3(-8, 1, -10), Vector3.UP)
+		feed_camera.look_at(Vector3(-8 * WORLD_SCALE, 1, -10 * WORLD_SCALE), Vector3.UP)
 	elif feed_index == 3:
-		feed_camera.look_at(Vector3(0, 1, 34), Vector3.UP)
+		feed_camera.look_at(Vector3(0, 1, 34 * WORLD_SCALE), Vector3.UP)
 	show_message("CAM %02d  /  %s" % [feed_index + 1, feed_names[feed_index]], 2.0)
 
 func change_camera(direction: int):
@@ -855,7 +913,7 @@ func load_game():
 		show_message("NO VALID SAVE FOUND", 3.0)
 		return
 	elapsed = float(data.get("elapsed", 0.0))
-	var pos = data.get("position", [-13, 0.1, 14])
+	var pos = data.get("position", [-13 * WORLD_SCALE, 0.1, 14 * WORLD_SCALE])
 	if pos is Array and pos.size() == 3:
 		player.position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
 	player.rotation.y = float(data.get("rotation", 0.0))
