@@ -3,6 +3,7 @@ extends Node3D
 const PlayerScript = preload("res://scripts/player.gd")
 const InteractableScript = preload("res://scripts/interactable.gd")
 const SaveSystem = preload("res://scripts/save_system.gd")
+const HauntingScript = preload("res://scripts/haunting.gd")
 
 var player
 var elapsed := 0.0
@@ -32,6 +33,7 @@ var feed_index := 0
 var feed_names = ["CENTRAL ATRIUM", "FOOD COURT", "EAST CORRIDOR", "PARKING LEVEL"]
 var feed_positions = [Vector3(0, 5.2, -7), Vector3(12, 4.5, -15), Vector3(-12, 4.5, -12), Vector3(0, 5.0, 21)]
 var anomaly_figure: Node3D
+var haunting: Node3D
 var anomaly_active := false
 var event_flags := {}
 var mall_materials := {}
@@ -39,6 +41,7 @@ var mall_materials := {}
 func _ready():
 	build_world()
 	build_player()
+	build_haunting()
 	build_ui()
 	set_objective("Report to the security office.")
 	show_message("SHIFT STARTED  /  12:00 AM", 4.0)
@@ -154,7 +157,8 @@ func build_security_office(parent):
 	office.name = "SecurityOffice"
 	parent.add_child(office)
 	box(office, Vector3(-13, 0.03, 23), Vector3(14, 0.08, 10), material(Color(0.12, 0.13, 0.13)), false)
-	box(office, Vector3(-13, 1.0, 18.2), Vector3(14, 2.0, 0.25), material(Color(0.24, 0.25, 0.24)), true)
+	box(office, Vector3(-17.5, 1.0, 18.2), Vector3(5.0, 2.0, 0.25), material(Color(0.24, 0.25, 0.24)), true)
+	box(office, Vector3(-8.5, 1.0, 18.2), Vector3(5.0, 2.0, 0.25), material(Color(0.24, 0.25, 0.24)), true)
 	box(office, Vector3(-20, 1.0, 23), Vector3(0.25, 2.0, 10), material(Color(0.24, 0.25, 0.24)), true)
 	box(office, Vector3(-6, 1.0, 23), Vector3(0.25, 2.0, 10), material(Color(0.24, 0.25, 0.24)), true)
 	box(office, Vector3(-13, 0.95, 24.5), Vector3(6.5, 1.1, 1.6), material(Color(0.12, 0.095, 0.075)), true)
@@ -239,9 +243,23 @@ func build_player():
 	player = CharacterBody3D.new()
 	player.name = "Player"
 	player.set_script(PlayerScript)
-	player.position = Vector3(-13, 0.1, 14)
+	player.position = Vector3(-13, 0.1, 21.5)
 	add_child(player)
 	player.interacted.connect(_on_interacted)
+
+func build_haunting():
+	haunting = Node3D.new()
+	haunting.name = "HauntingDirector"
+	haunting.set_script(HauntingScript)
+	add_child(haunting)
+	haunting.configure(player, self)
+
+func haunt_encounter():
+	show_message("MOVE. DO NOT LOOK BACK.", 3.5)
+	if is_instance_valid(player.camera):
+		player.camera.fov = 88.0
+		var tween = create_tween()
+		tween.tween_property(player.camera, "fov", 78.0, 1.2)
 
 func build_ui():
 	ui = CanvasLayer.new()
@@ -402,7 +420,7 @@ func handle_interaction(target):
 			else:
 				show_message("The access lock is still engaged.", 2.0)
 		"office_door":
-			player.position = Vector3(-13, 0.1, 14) if player.position.z > 18 else Vector3(-13, 0.1, 20)
+			player.position = Vector3(-13, 0.1, 21.5) if player.position.z > 18 else Vector3(-13, 0.1, 14)
 		"exit":
 			if elapsed >= 300.0:
 				finish_game()
@@ -575,7 +593,9 @@ func _menu_action(action: String):
 			discovered.clear()
 			decisions.clear()
 			event_flags.clear()
-			player.position = Vector3(-13, 0.1, 14)
+			player.position = Vector3(-13, 0.1, 21.5)
+			if is_instance_valid(haunting):
+				haunting.reset_hunt()
 			set_objective("Report to the security office.")
 			resume_game()
 			show_message("SHIFT STARTED  /  12:00 AM", 4.0)
