@@ -476,10 +476,10 @@ func build_player():
 func build_menu_camera():
 	menu_camera = Camera3D.new()
 	menu_camera.name = "TitleCamera"
-	menu_camera.position = Vector3(0, 4.8, 35 * WORLD_SCALE)
+	menu_camera.position = Vector3(0, 5.0, 17 * WORLD_SCALE)
 	menu_camera.fov = 58.0
 	add_child(menu_camera)
-	menu_camera.look_at(Vector3(0, 2.5, -12 * WORLD_SCALE), Vector3.UP)
+	menu_camera.look_at(Vector3(0, 2.5, -14 * WORLD_SCALE), Vector3.UP)
 
 func build_haunting():
 	haunting = Node3D.new()
