@@ -3,6 +3,9 @@ extends CharacterBody3D
 signal interacted(target)
 var look_sensitivity := 0.0022
 var stamina := 100.0
+var flashlight_battery := 100.0
+var step_timer := 0.0
+var footstep_player: AudioStreamPlayer3D
 var flashlight_on := true
 var crouched := false
 var gravity := 18.0
@@ -38,13 +41,17 @@ func _ready():
 	lamp.light_energy = 2.2
 	lamp.shadow_enabled = true
 	camera.add_child(lamp)
+	footstep_player = AudioStreamPlayer3D.new()
+	footstep_player.stream = make_footstep()
+	footstep_player.volume_db = -16.0
+	add_child(footstep_player)
 
 func _unhandled_input(event):
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * look_sensitivity)
 		camera.rotate_x(-event.relative.y * look_sensitivity)
 		camera.rotation.x = clamp(camera.rotation.x, -1.48, 1.48)
-	if event.is_action_pressed("flashlight"):
+	if event.is_action_pressed("flashlight") and flashlight_battery > 0.0:
 		flashlight_on = !flashlight_on
 		lamp.visible = flashlight_on
 	if event.is_action_pressed("crouch"):
@@ -75,7 +82,46 @@ func _physics_process(delta):
 		velocity.y -= gravity * delta
 	else:
 		velocity.y = -0.2
+	if flashlight_on:
+		flashlight_battery = maxf(0.0, flashlight_battery - 4.2 * delta)
+		if flashlight_battery <= 0.0:
+			flashlight_on = false
+			lamp.visible = false
+		elif flashlight_battery < 18.0:
+			lamp.visible = sin(Time.get_ticks_msec() * 0.018) > -0.72
+	else:
+		flashlight_battery = minf(100.0, flashlight_battery + 2.0 * delta)
+		lamp.visible = false
+	if moving and is_on_floor():
+		step_timer -= delta
+		if step_timer <= 0.0:
+			footstep_player.pitch_scale = randf_range(0.9, 1.08)
+			footstep_player.play()
+			step_timer = 0.72 if crouched else (0.34 if sprinting else 0.49)
+	else:
+		step_timer = minf(step_timer, 0.12)
 	var target = direction * speed
 	velocity.x = move_toward(velocity.x, target.x, 18.0 * delta)
 	velocity.z = move_toward(velocity.z, target.z, 18.0 * delta)
 	move_and_slide()
+
+func make_footstep() -> AudioStreamWAV:
+	var rate = 22050
+	var count = int(rate * 0.11)
+	var bytes = PackedByteArray()
+	bytes.resize(count * 2)
+	for i in range(count):
+		var t = float(i) / count
+		var envelope = pow(1.0 - t, 5.0)
+		var tone = sin(float(i) * 0.12) * 0.18
+		var noise = randf_range(-0.8, 0.8) * 0.82
+		var sample = clampf((tone + noise) * envelope, -1.0, 1.0)
+		var value = int(sample * 32767.0)
+		bytes[i * 2] = value & 255
+		bytes[i * 2 + 1] = (value >> 8) & 255
+	var stream = AudioStreamWAV.new()
+	stream.data = bytes
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = rate
+	stream.stereo = false
+	return stream
