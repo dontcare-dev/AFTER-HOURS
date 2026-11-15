@@ -20,6 +20,8 @@ window/stretch/mode="canvas_items"
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
 textures/default_filters/use_nearest_mipmap_filter=false
+anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/screen_space_roughness_limiter_enabled=true
 environment/defaults/default_clear_color=Color(0.012, 0.014, 0.018, 1)
 
 [input]
